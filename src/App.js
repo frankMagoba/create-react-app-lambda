@@ -1,50 +1,117 @@
-import React, { Component } from "react"
-import logo from "./logo.svg"
-import "./App.css"
+import React from "react";
+import { transitions, positions, Provider as AlertProvider } from "react-alert";
+import AlertTemplate from "react-alert-template-basic";
+import Cookies from "universal-cookie";
+import "./App.css";
+import {
+  BrowserRouter as Router,
+  Switch,
+  Route,
+  Redirect,
+} from "react-router-dom";
+import Album from "./views/Menu";
+import Register from "./views/Register";
+import Login from "./views/Login";
+import ShoppingCart from "./views/ShoppingCart";
+import Receipt from "./views/Receipt";
+import OrderList from "./views/Orders";
+import { createMuiTheme, ThemeProvider } from "@material-ui/core/styles";
 
-class LambdaDemo extends Component {
-  constructor(props) {
-    super(props)
-    this.state = { loading: false, msg: null }
-  }
+const theme = createMuiTheme({
+  palette: {
+    primary: {
+      // light: will be calculated from palette.primary.main,
+      main: "#A82424",
+      // dark: will be calculated from palette.primary.main,
+      // contrastText: will be calculated to contrast with palette.primary.main
+    },
+    secondary: {
+      light: "#0066ff",
+      main: "#A82424",
+      // dark: will be calculated from palette.secondary.main,
+      contrastText: "#FFF",
+    },
+    // Used by `getContrastText()` to maximize the contrast between
+    // the background and the text.
+    contrastThreshold: 3,
+    // Used by the functions below to shift a color's luminance by approximately
+    // two indexes within its tonal palette.
+    // E.g., shift from Red 500 to Red 300 or Red 700.
+    tonalOffset: 0.2,
+  },
+});
 
-  handleClick = api => e => {
-    e.preventDefault()
-
-    this.setState({ loading: true })
-    fetch("/.netlify/functions/" + api)
-      .then(response => response.json())
-      .then(json => this.setState({ loading: false, msg: json.msg }))
-  }
-
-  render() {
-    const { loading, msg } = this.state
-
-    return (
-      <p>
-        <button onClick={this.handleClick("hello")}>{loading ? "Loading..." : "Call Lambda"}</button>
-        <button onClick={this.handleClick("async-dadjoke")}>{loading ? "Loading..." : "Call Async Lambda"}</button>
-        <br />
-        <span>{msg}</span>
-      </p>
-    )
-  }
+function App() {
+  return (
+    <ThemeProvider theme={theme}>
+      <AlertProvider template={AlertTemplate}>
+        <Router>
+          <Switch>
+            <NotLoggedRoute path="/login">
+              <Login />
+            </NotLoggedRoute>
+            <NotLoggedRoute path="/register">
+              <Register />
+            </NotLoggedRoute>
+            <Route path="/shopping_cart">
+              <ShoppingCart />
+            </Route>
+            <Route path="/receipt/:id">
+              <Receipt />
+            </Route>
+            <LoggedRoute path="/orders">
+              <OrderList />
+            </LoggedRoute>
+            <Route path="/">
+              <Album />
+            </Route>
+          </Switch>
+        </Router>
+      </AlertProvider>
+    </ThemeProvider>
+  );
 }
 
-class App extends Component {
-  render() {
-    return (
-      <div className="App">
-        <header className="App-header">
-          <img src={logo} className="App-logo" alt="logo" />
-          <p>
-            Edit <code>src/App.js</code> and save to reload.
-          </p>
-          <LambdaDemo />
-        </header>
-      </div>
-    )
-  }
+function NotLoggedRoute({ children, ...rest }) {
+  const cookies = new Cookies();
+  return (
+    <Route
+      {...rest}
+      render={({ location }) =>
+        typeof cookies.get("user") == "undefined" ? (
+          children
+        ) : (
+          <Redirect
+            to={{
+              pathname: "/",
+              state: { from: location },
+            }}
+          />
+        )
+      }
+    />
+  );
 }
 
-export default App
+function LoggedRoute({ children, ...rest }) {
+  const cookies = new Cookies();
+  return (
+    <Route
+      {...rest}
+      render={({ location }) =>
+        typeof cookies.get("user") != "undefined" ? (
+          children
+        ) : (
+          <Redirect
+            to={{
+              pathname: "/",
+              state: { from: location },
+            }}
+          />
+        )
+      }
+    />
+  );
+}
+
+export default App;
